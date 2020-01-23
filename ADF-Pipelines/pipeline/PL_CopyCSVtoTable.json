@@ -1,0 +1,92 @@
+{
+	"name": "PL_CopyCSVtoTable",
+	"properties": {
+		"activities": [
+			{
+				"name": "Copy_SourceToTransformationRaw",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "SqlSink",
+						"writeBatchSize": 10000
+					},
+					"enableStaging": false,
+					"parallelCopies": 32,
+					"dataIntegrationUnits": 32,
+					"translator": {
+						"value": "@pipeline().parameters.jsonMapping",
+						"type": "Expression"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "SftpSrc",
+						"type": "DatasetReference",
+						"parameters": {
+							"filename": {
+								"value": "@pipeline().parameters.fileName",
+								"type": "Expression"
+							},
+							"filepath": {
+								"value": "@pipeline().parameters.filePath",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "RawTable",
+						"type": "DatasetReference"
+					}
+				]
+			}
+		],
+		"parameters": {
+			"jsonMapping": {
+				"type": "Object",
+				"defaultValue": "jsonMapping"
+			},
+			"SourceSchema": {
+				"type": "Object",
+				"defaultValue": "SourceSchema"
+			},
+			"SinkSchema": {
+				"type": "Object",
+				"defaultValue": "SinkSchema"
+			},
+			"fileName": {
+				"type": "String",
+				"defaultValue": "fileName"
+			},
+			"filePath": {
+				"type": "String",
+				"defaultValue": "filePath"
+			}
+		},
+		"folder": {
+			"name": "Transactions"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

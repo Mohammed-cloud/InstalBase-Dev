@@ -1,0 +1,46 @@
+{
+	"name": "CopyDataFlow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "Flow",
+						"type": "DatasetReference"
+					},
+					"name": "source"
+				},
+				{
+					"dataset": {
+						"referenceName": "TempRawQuote",
+						"type": "DatasetReference"
+					},
+					"name": "TempRaw"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "TempRawQuote",
+						"type": "DatasetReference"
+					},
+					"name": "InsertingintoTemp"
+				},
+				{
+					"dataset": {
+						"referenceName": "RawQuote",
+						"type": "DatasetReference"
+					},
+					"name": "QuoteUSRaw"
+				}
+			],
+			"transformations": [
+				{
+					"name": "DerivedColumn"
+				}
+			],
+			"script": "\nparameters{\n\tfilename as string,\n\tFile_trans_id as string\n}\nsource(output(\n\t\tSerialNumber as string,\n\t\tSalesOrder as string,\n\t\t{Sales Item} as string,\n\t\tMaterial as string,\n\t\tQuantity as string,\n\t\tUoM as string,\n\t\tNetValue as string,\n\t\tCurrency as string,\n\t\tCreationDate as string,\n\t\tCreatedBy as string,\n\t\tPlant as string,\n\t\tDocumentType as string,\n\t\tDocumentCategory as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: true,\n\twildcardPaths:[('Quote/'+$filename)]) ~> source\nsource(output(\n\t\tSerial_Number as string,\n\t\tSales_Order as integer,\n\t\tSales_Item as integer,\n\t\tMaterial as string,\n\t\tQuantity as string,\n\t\tUoM as string,\n\t\tNet_value as string,\n\t\tCurrency as string,\n\t\tCreation_Date as string,\n\t\tCreated_By as string,\n\t\tPlant as string,\n\t\tDocument_Type as string,\n\t\tDocument_Category as string,\n\t\tBatch_Id as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> TempRaw\nsource derive(file_trans_Id = $File_trans_id) ~> DerivedColumn\nDerivedColumn sink(input(\n\t\tSerial_Number as string,\n\t\tSales_Order as integer,\n\t\tSales_Item as integer,\n\t\tMaterial as string,\n\t\tQuantity as string,\n\t\tUoM as string,\n\t\tNet_value as string,\n\t\tCurrency as string,\n\t\tCreation_Date as string,\n\t\tCreated_By as string,\n\t\tPlant as string,\n\t\tDocument_Type as string,\n\t\tDocument_Category as string,\n\t\tBatch_Id as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tSerial_Number = SerialNumber,\n\t\tSales_Order = SalesOrder,\n\t\tSales_Item = {Sales Item},\n\t\tMaterial,\n\t\tQuantity,\n\t\tUoM,\n\t\tNet_value = NetValue,\n\t\tCurrency,\n\t\tCreation_Date = CreationDate,\n\t\tCreated_By = CreatedBy,\n\t\tPlant,\n\t\tDocument_Type = DocumentType,\n\t\tDocument_Category = DocumentCategory,\n\t\tBatch_Id = file_trans_Id\n\t)) ~> InsertingintoTemp\nTempRaw sink(input(\n\t\tSerial_Number as string,\n\t\tSales_Order as integer,\n\t\tSales_Item as integer,\n\t\tMaterial as string,\n\t\tQuantity as string,\n\t\tUoM as string,\n\t\tNet_value as string,\n\t\tCurrency as string,\n\t\tCreation_Date as string,\n\t\tCreated_By as string,\n\t\tPlant as string,\n\t\tDocument_Type as string,\n\t\tDocument_Category as string,\n\t\tBatch_Id as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table') ~> QuoteUSRaw"
+		}
+	}
+}

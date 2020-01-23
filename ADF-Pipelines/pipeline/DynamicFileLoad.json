@@ -1,0 +1,313 @@
+{
+	"name": "DynamicFileLoad",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach_ProcessFilesPerBatch_Quote",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup_GetUnprocessedTransactionIds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup_GetUnprocessedTransactionIds').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 10,
+					"activities": [
+						{
+							"name": "Lookup_GetDynamicMapping",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlSource",
+									"sqlReaderStoredProcedureName": "[dbo].[usp_GetSourceToTransactionRawMapping]",
+									"storedProcedureParameters": {
+										"file_trans_id": {
+											"type": "Int32",
+											"value": {
+												"value": "@item().file_trans_id",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"dataset": {
+									"referenceName": "AzureSqlTable1",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Get File Structure",
+							"type": "GetMetadata",
+							"dependsOn": [
+								{
+									"activity": "Lookup_GetDynamicMapping",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_Raw",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+											"type": "Expression"
+										}
+									}
+								},
+								"fieldList": [
+									"structure"
+								],
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							}
+						},
+						{
+							"name": "Staging Table Creation",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Get File Structure",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_StagingCreation]",
+								"storedProcedureParameters": {
+									"FileName_INPUT": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"schema": {
+										"value": "Temp",
+										"type": "String"
+									},
+									"SrcColumnName": {
+										"value": {
+											"value": "@replace(replace(replace(replace(replace(replace(replace(replace(string(activity('Get File Structure').output.structure), '[', ''), ']',''), '{\"name\":\"', '['),'\",\"type\":\"Int32\"}', '] int'), '\",\"type\":\"Int64\"}', '] bigint'), '\",\"type\":\"Decimal\"}', '] decimal(38,18)'), '\",\"type\":\"DateTime\"}', '] datetime2'), '\",\"type\":\"String\"}', '] nvarchar(4000)' )\n",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"file_trans_Id": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.file_trans_Id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Copy Blob To Staging Table",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Staging Table Creation",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink"
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_Raw",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_TempRaw",
+									"type": "DatasetReference",
+									"parameters": {
+										"schema": "temp",
+										"stage_table": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.filepattern",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Promote",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Copy Blob To Staging Table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[Promote]",
+								"storedProcedureParameters": {
+									"file_target_table": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.Target_TableName",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"file_temp_table": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.filepattern",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"file_trans_Id": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.file_trans_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"SinkSchema": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.SinkSchema",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"SourceSchema": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.SourceSchema",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase",
+								"type": "LinkedServiceReference"
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup_GetUnprocessedTransactionIds",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_GetUnproccessedTransactionIds]",
+						"storedProcedureParameters": {
+							"flag": {
+								"type": "String",
+								"value": "UnProcessedBatch"
+							}
+						}
+					},
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,41 @@
+{
+	"name": "Dataset-DeDupe",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "CustomerV1",
+						"type": "DatasetReference"
+					},
+					"name": "BlobSource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "sink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "SurrogateKey"
+				},
+				{
+					"name": "Grouping"
+				},
+				{
+					"name": "Dedup"
+				},
+				{
+					"name": "Select"
+				}
+			],
+			"script": "\n\nsource(output(\n\t\tCust_ID as string,\n\t\tCustomerName as string,\n\t\tCompany_Name as string,\n\t\tAddress as string,\n\t\tCity as string,\n\t\tCountry as string,\n\t\tState as string,\n\t\tZip as string,\n\t\t{Total Revenue} as string\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false) ~> BlobSource\nBlobSource keyGenerate(output(SK as long),\n\tstartAt: 1L) ~> SurrogateKey\nSurrogateKey aggregate(groupBy(Cust_ID = Cust_ID),\n\tCust_ID_Count = sum(1),\n\t\tSK = max(SK)) ~> Grouping\nGrouping, SurrogateKey join(Grouping@SK == SurrogateKey@SK,\n\tjoinType:'inner',\n\tbroadcast: 'none')~> Dedup\nDedup select(mapColumn(\n\t\tCust_ID = {Grouping@Cust_ID},\n\t\tSK = {Grouping@SK},\n\t\tCustomerName,\n\t\tCompany_Name,\n\t\tAddress,\n\t\tCity,\n\t\tCountry,\n\t\tState,\n\t\tZip,\n\t\t{Total Revenue}\n\t),\n\tskipDuplicateMapInputs: true,\n\tskipDuplicateMapOutputs: true) ~> Select\nSelect sink(allowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\ttruncate:true,\n\tformat: 'table') ~> sink"
+		}
+	}
+}

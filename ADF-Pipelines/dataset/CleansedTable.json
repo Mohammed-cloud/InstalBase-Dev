@@ -1,0 +1,155 @@
+{
+	"name": "CleansedTable",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Bun",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Created_By",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Creation_Date",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Currency",
+				"type": "varchar"
+			},
+			{
+				"name": "Customer_Name",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Del_Date",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Destination",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Doc_Date",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Document_Category",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Document_Type",
+				"type": "nvarchar"
+			},
+			{
+				"name": "FX_RATE",
+				"type": "nvarchar"
+			},
+			{
+				"name": "GBP_Value",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Item",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Job_No",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Line_item",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Material",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Material_Description",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Net_price",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Net_value",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Order_qty",
+				"type": "nvarchar"
+			},
+			{
+				"name": "per",
+				"type": "bigint",
+				"precision": 19
+			},
+			{
+				"name": "Plant",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Purchase_order_no",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Quantity",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Sales_Item",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Sales_Item_Description",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Sales_Item_Text",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Sales_Order",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "SerialNumber",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Sold_to_pt",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "UoM",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Batch_Id",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "cleansed_Transaction"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

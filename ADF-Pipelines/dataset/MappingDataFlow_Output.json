@@ -1,0 +1,28 @@
+{
+	"name": "MappingDataFlow_Output",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "POS",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"container": "wdatasource"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "��\u0011ࡱ\u001a�\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000>\u0000\u0003\u0000��\t\u0000\u0006\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u00004\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0010\u0000\u0000�\u0019\u0000\u0000\u0001\u0000\u0000\u0000����\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000b\u0000\u0000\u0000�\u0000\u0000\u0000d\u0001\u0000\u0000�\u0001\u0000\u0000f\u0002\u0000\u0000�\u0002\u0000\u0000h\u0003\u0000\u0000�\u0003\u0000\u0000j\u0004\u0000\u0000�\u0004\u0000\u0000l\u0005\u0000\u0000�\u0005\u0000\u0000n\u0006\u0000\u0000�\u0006\u0000\u0000p\u0007\u0000\u0000�\u0007\u0000\u0000r\b\u0000\u0000�\b\u0000\u0000t\t\u0000\u0000�\t\u0000\u0000v",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

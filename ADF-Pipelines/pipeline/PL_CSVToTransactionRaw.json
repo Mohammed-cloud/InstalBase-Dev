@@ -1,0 +1,208 @@
+{
+	"name": "PL_CSVToTransactionRaw",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach_ProcessFilesPerBatch",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup_GetUnprocessedBatchIds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup_GetUnprocessedBatchIds').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 10,
+					"activities": [
+						{
+							"name": "Lookup_GetDynamicMapping",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlSource",
+									"sqlReaderStoredProcedureName": "[dbo].[usp_GetSourceToTransactionRawMapping]",
+									"storedProcedureParameters": {
+										"batchId": {
+											"type": "Int32",
+											"value": {
+												"value": "@item().batch_id",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"dataset": {
+									"referenceName": "AzureSqlTable1",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Check_jsonMapping_Parameter",
+							"type": "IfCondition",
+							"dependsOn": [
+								{
+									"activity": "Lookup_GetDynamicMapping",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"expression": {
+									"value": "@equals(activity('Lookup_GetDynamicMapping').output.firstRow.SourceSchema,'')",
+									"type": "Expression"
+								},
+								"ifFalseActivities": [
+									{
+										"name": "StoredProcedure_UpdateTransactionRaw",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [
+											{
+												"activity": "CopyCSVtoTransactionTable",
+												"dependencyConditions": [
+													"Succeeded"
+												]
+											}
+										],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[dbo].[usp_UpdateTransactionRaw]",
+											"storedProcedureParameters": {
+												"batchId": {
+													"value": {
+														"value": "@item().batch_id",
+														"type": "Expression"
+													},
+													"type": "Int32"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "AzureSqlDatabase",
+											"type": "LinkedServiceReference"
+										}
+									},
+									{
+										"name": "CopyCSVtoTransactionTable",
+										"type": "SqlServerStoredProcedure",
+										"dependsOn": [],
+										"policy": {
+											"timeout": "7.00:00:00",
+											"retry": 0,
+											"retryIntervalInSeconds": 30,
+											"secureOutput": false,
+											"secureInput": false
+										},
+										"userProperties": [],
+										"typeProperties": {
+											"storedProcedureName": "[dbo].[usp_CopyCSVToTransactionRawMapping]",
+											"storedProcedureParameters": {
+												"File_Id": {
+													"value": {
+														"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.batchId",
+														"type": "Expression"
+													},
+													"type": "Int32"
+												},
+												"FileName_INPUT": {
+													"value": {
+														"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfileName",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"FilePath_INPUT": {
+													"value": {
+														"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilepath",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"SourceSchema": {
+													"value": {
+														"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.SourceSchema",
+														"type": "Expression"
+													},
+													"type": "String"
+												},
+												"SinkSchema": {
+													"value": {
+														"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.SinkSchema\n",
+														"type": "Expression"
+													},
+													"type": "String"
+												}
+											}
+										},
+										"linkedServiceName": {
+											"referenceName": "AzureSqlDatabase",
+											"type": "LinkedServiceReference"
+										}
+									}
+								]
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup_GetUnprocessedBatchIds",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_GetUnproccessedBatchIds]",
+						"storedProcedureParameters": {
+							"flag": {
+								"type": "String",
+								"value": "UnProcessedBatch"
+							}
+						}
+					},
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			}
+		],
+		"folder": {
+			"name": "Transactions"
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
