@@ -1,0 +1,790 @@
+{
+	"name": "UpdatedDynamicFileLoad",
+	"properties": {
+		"description": "Getting Transaction Id",
+		"activities": [
+			{
+				"name": "ForEach_ProcessFilesPerBatch_Quote",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup_GetUnprocessedTransactionIds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup_GetUnprocessedTransactionIds').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 10,
+					"activities": [
+						{
+							"name": "Lookup_GetDynamicMapping",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlSource",
+									"sqlReaderStoredProcedureName": "[dbo].[usp_GetSourceToTransactionRawMapping]",
+									"storedProcedureParameters": {
+										"file_trans_id": {
+											"type": "Int32",
+											"value": {
+												"value": "@item().file_trans_id",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"dataset": {
+									"referenceName": "AzureSqlTable1",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Copy Blob To Staging Table",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Lookup_GetDynamicMapping",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "AzureSqlSink",
+									"preCopyScript": {
+										"value": "Truncate table Temp. @{activity('Lookup_GetDynamicMapping').output.firstRow.Stage_TableName}",
+										"type": "Expression"
+									},
+									"disableMetricsCollection": false
+								},
+								"enableStaging": false,
+								"parallelCopies": 1
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_Raw",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_TempRaw",
+									"type": "DatasetReference",
+									"parameters": {
+										"schema": "temp",
+										"stage_table": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.Stage_TableName",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Promote Raw Table",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Copy Blob To Staging Table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[Promote]",
+								"storedProcedureParameters": {
+									"file_target_table": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.Target_TableName",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"file_temp_table": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.Stage_TableName",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"file_trans_Id": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.file_trans_id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"SinkSchema": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.SinkSchema",
+											"type": "Expression"
+										},
+										"type": "String"
+									},
+									"Temp_SourceSchema": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.Temp_SourceSchema",
+											"type": "Expression"
+										},
+										"type": "String"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "MovingToArchive",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Success-UpdateFileTransaction",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobStorageWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".csv"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_SrcArchive",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_DstArchive",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "ProcessedFileDeletion",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "MovingToArchive",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_DeleteFiles",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": false
+								}
+							}
+						},
+						{
+							"name": "Success-UpdateFileTransaction",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Promote Raw Table",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_UpdateLoadStatus]",
+								"storedProcedureParameters": {
+									"file_Trans_Id": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.file_trans_Id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"Status": {
+										"value": "RAW-completed",
+										"type": "String"
+									},
+									"Trans_Status": {
+										"value": "2",
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "Failure-UpdateFileTransaction",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Promote Raw Table",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_UpdateLoadStatus]",
+								"storedProcedureParameters": {
+									"file_Trans_Id": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.file_trans_Id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"Status": {
+										"value": "RAW-failed",
+										"type": "String"
+									},
+									"Trans_Status": {
+										"value": "3",
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "MovingToArchive_Failure",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Failure-UpdateFileTransaction",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobStorageWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".csv"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_SrcArchive",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_DstArchive",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "ProcessedFileDeletion-Failure",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "MovingToArchive_Failure",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_DeleteFiles",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": false
+								}
+							}
+						},
+						{
+							"name": "Staging Failed",
+							"type": "SqlServerStoredProcedure",
+							"dependsOn": [
+								{
+									"activity": "Copy Blob To Staging Table",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"storedProcedureName": "[dbo].[usp_UpdateLoadStatus]",
+								"storedProcedureParameters": {
+									"file_Trans_Id": {
+										"value": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.file_trans_Id",
+											"type": "Expression"
+										},
+										"type": "Int32"
+									},
+									"Status": {
+										"value": "RAW-failed",
+										"type": "String"
+									},
+									"Trans_Status": {
+										"value": "3",
+										"type": "Int32"
+									}
+								}
+							},
+							"linkedServiceName": {
+								"referenceName": "AzureSqlDatabase",
+								"type": "LinkedServiceReference"
+							}
+						},
+						{
+							"name": "MovingToArchive_Failure_Staging",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Staging Failed",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobStorageWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ".csv"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_SrcArchive",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_DstArchive",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "ProcessedFileDeletion-Failure_Staging",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "MovingToArchive_Failure_Staging",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_DeleteFiles",
+									"type": "DatasetReference",
+									"parameters": {
+										"filename": {
+											"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+											"type": "Expression"
+										}
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": false
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup_GetUnprocessedTransactionIds",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_GetUnproccessedTransactionIds]",
+						"storedProcedureParameters": {
+							"flag": {
+								"type": "String",
+								"value": "UnProcessedBatch"
+							}
+						}
+					},
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Check FlagFile for Current Load",
+				"type": "GetMetadata",
+				"dependsOn": [
+					{
+						"activity": "ForEach_ProcessFilesPerBatch_Quote",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_MetaFlag",
+						"type": "DatasetReference"
+					},
+					"fieldList": [
+						"exists"
+					],
+					"storeSettings": {
+						"type": "AzureBlobStorageReadSettings",
+						"recursive": true
+					},
+					"formatSettings": {
+						"type": "DelimitedTextReadSettings"
+					}
+				}
+			},
+			{
+				"name": "Flag File Exist",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "Check FlagFile for Current Load",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(activity('Check FlagFile for Current Load').output.exists,true)",
+						"type": "Expression"
+					},
+					"ifTrueActivities": [
+						{
+							"name": "Flag File Moving To Archive",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": false,
+										"wildcardFileName": "*Proceed*",
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "DelimitedTextSink",
+									"storeSettings": {
+										"type": "AzureBlobStorageWriteSettings"
+									},
+									"formatSettings": {
+										"type": "DelimitedTextWriteSettings",
+										"quoteAllText": true,
+										"fileExtension": ""
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_Flag",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_DstArchive",
+									"type": "DatasetReference"
+								}
+							]
+						},
+						{
+							"name": "Flag-File Deletion",
+							"type": "Delete",
+							"dependsOn": [
+								{
+									"activity": "Flag File Moving To Archive",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_Flag",
+									"type": "DatasetReference"
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": false,
+									"wildcardFileName": "*Flag*"
+								}
+							}
+						}
+					]
+				}
+			}
+		],
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

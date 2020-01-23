@@ -1,0 +1,66 @@
+{
+	"name": "D1",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SourceBlobStorage",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"BlobFileName": {
+				"type": "string"
+			},
+			"OutputFolderPath": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@dataset().BlobFileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().OutputFolderPath",
+					"type": "Expression"
+				},
+				"container": "output"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"type": "String"
+			},
+			{
+				"type": "String"
+			},
+			{
+				"type": "String"
+			},
+			{
+				"type": "String"
+			},
+			{
+				"type": "String"
+			},
+			{
+				"type": "String"
+			},
+			{
+				"type": "String"
+			},
+			{
+				"type": "String"
+			},
+			{
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

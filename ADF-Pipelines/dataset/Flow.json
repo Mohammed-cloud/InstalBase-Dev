@@ -1,0 +1,85 @@
+{
+	"name": "Flow",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SourceBlobStorage",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"filename": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@dataset().filename",
+					"type": "Expression"
+				},
+				"container": "spxflow/Quote"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "SerialNumber",
+				"type": "String"
+			},
+			{
+				"name": "SalesOrder",
+				"type": "String"
+			},
+			{
+				"name": "Sales Item",
+				"type": "String"
+			},
+			{
+				"name": "Material",
+				"type": "String"
+			},
+			{
+				"name": "Quantity",
+				"type": "String"
+			},
+			{
+				"name": "UoM",
+				"type": "String"
+			},
+			{
+				"name": "NetValue",
+				"type": "String"
+			},
+			{
+				"name": "Currency",
+				"type": "String"
+			},
+			{
+				"name": "CreationDate",
+				"type": "String"
+			},
+			{
+				"name": "CreatedBy",
+				"type": "String"
+			},
+			{
+				"name": "Plant",
+				"type": "String"
+			},
+			{
+				"name": "DocumentType",
+				"type": "String"
+			},
+			{
+				"name": "DocumentCategory",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

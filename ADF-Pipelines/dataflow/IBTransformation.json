@@ -1,0 +1,41 @@
+{
+	"name": "IBTransformation",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "RawTable",
+						"type": "DatasetReference"
+					},
+					"name": "RawTransactionTable"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "CleansedTable",
+						"type": "DatasetReference"
+					},
+					"name": "sink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "CleansingCustomerNamesPart1"
+				},
+				{
+					"name": "CleansingCustomernamesPart2"
+				},
+				{
+					"name": "CreatingSeperateLineItem"
+				},
+				{
+					"name": "SplitingSeperateLineItem"
+				}
+			],
+			"script": "\n\nsource(output(\n\t\tBun as string,\n\t\tCreated_By as string,\n\t\tCreation_Date as string,\n\t\tCurrency as string,\n\t\tCustomer_Name as string,\n\t\tDel_Date as string,\n\t\tDestination as string,\n\t\tDoc_Date as string,\n\t\tDocument_Category as string,\n\t\tDocument_Type as string,\n\t\tFX_RATE as string,\n\t\tGBP_Value as integer,\n\t\tItem as integer,\n\t\tJob_No as integer,\n\t\tLine_item as string,\n\t\tMaterial as string,\n\t\tMaterial_Description as string,\n\t\tNet_price as integer,\n\t\tNet_value as string,\n\t\tOrder_qty as string,\n\t\tper as long,\n\t\tPlant as string,\n\t\tPurchase_order_no as string,\n\t\tQuantity as string,\n\t\tSales_Item as integer,\n\t\tSales_Item_Description as string,\n\t\tSales_Item_Text as string,\n\t\tSales_Order as integer,\n\t\tSerial_Number as string,\n\t\tSold_to_pt as integer,\n\t\tUoM as string,\n\t\tBatch_Id as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tisolationLevel: 'READ_UNCOMMITTED',\n\tformat: 'table') ~> RawTransactionTable\nRawTransactionTable derive(Customer_Name = case((like(Customer_Name,'Pump%')),'Pumps123 LTD',Customer_Name)) ~> CleansingCustomerNamesPart1\nCleansingCustomerNamesPart1 derive(Customer_Name = case((Customer_Name=='Customer 2'),'SPX123 LTD',Customer_Name)) ~> CleansingCustomernamesPart2\nCleansingCustomernamesPart2 window(over(Serial_Number = Serial_Number),\n\tasc(Quantity, true),\n\tRanking = rowNumber()) ~> CreatingSeperateLineItem\nCreatingSeperateLineItem derive(Serial_Number = Serial_Number+'_'+ toString(Ranking)) ~> SplitingSeperateLineItem\nSplitingSeperateLineItem sink(input(\n\t\tBun as string,\n\t\tCreated_By as string,\n\t\tCreation_Date as string,\n\t\tCurrency as string,\n\t\tCustomer_Name as string,\n\t\tDel_Date as string,\n\t\tDestination as string,\n\t\tDoc_Date as string,\n\t\tDocument_Category as string,\n\t\tDocument_Type as string,\n\t\tFX_RATE as string,\n\t\tGBP_Value as integer,\n\t\tItem as integer,\n\t\tJob_No as integer,\n\t\tLine_item as string,\n\t\tMaterial as string,\n\t\tMaterial_Description as string,\n\t\tNet_price as integer,\n\t\tNet_value as string,\n\t\tOrder_qty as string,\n\t\tper as long,\n\t\tPlant as string,\n\t\tPurchase_order_no as string,\n\t\tQuantity as string,\n\t\tSales_Item as integer,\n\t\tSales_Item_Description as string,\n\t\tSales_Item_Text as string,\n\t\tSales_Order as integer,\n\t\tSerialNumber as string,\n\t\tSold_to_pt as integer,\n\t\tUoM as string,\n\t\tBatch_Id as integer\n\t),\n\tallowSchemaDrift: true,\n\tvalidateSchema: false,\n\tdeletable:false,\n\tinsertable:true,\n\tupdateable:false,\n\tupsertable:false,\n\tformat: 'table',\n\tmapColumn(\n\t\tBun,\n\t\tCreated_By,\n\t\tCreation_Date,\n\t\tCurrency,\n\t\tCustomer_Name,\n\t\tDel_Date,\n\t\tDestination,\n\t\tDoc_Date,\n\t\tDocument_Category,\n\t\tDocument_Type,\n\t\tFX_RATE,\n\t\tGBP_Value,\n\t\tItem,\n\t\tJob_No,\n\t\tLine_item,\n\t\tMaterial,\n\t\tMaterial_Description,\n\t\tNet_price,\n\t\tNet_value,\n\t\tOrder_qty,\n\t\tper,\n\t\tPlant,\n\t\tPurchase_order_no,\n\t\tQuantity,\n\t\tSales_Item,\n\t\tSales_Item_Description,\n\t\tSales_Item_Text,\n\t\tSales_Order,\n\t\tSerialNumber = Serial_Number,\n\t\tSold_to_pt,\n\t\tUoM,\n\t\tBatch_Id\n\t)) ~> sink"
+		}
+	}
+}

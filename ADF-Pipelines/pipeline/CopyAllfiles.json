@@ -1,0 +1,115 @@
+{
+	"name": "CopyAllfiles",
+	"properties": {
+		"activities": [
+			{
+				"name": "File-Iteration",
+				"type": "ForEach",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.InputParams",
+						"type": "Expression"
+					},
+					"isSequential": true,
+					"activities": [
+						{
+							"name": "CopyEachFiles",
+							"type": "Copy",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "DelimitedTextSource",
+									"storeSettings": {
+										"type": "AzureBlobStorageReadSettings",
+										"recursive": true,
+										"wildcardFileName": {
+											"value": "*",
+											"type": "Expression"
+										},
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "DelimitedTextReadSettings"
+									}
+								},
+								"sink": {
+									"type": "BlobSink"
+								},
+								"enableStaging": false,
+								"dataIntegrationUnits": 0
+							},
+							"inputs": [
+								{
+									"referenceName": "S1",
+									"type": "DatasetReference",
+									"parameters": {
+										"FtpFileName": {
+											"value": "@item().FtpFileName",
+											"type": "Expression"
+										},
+										"SrcFolderPath": {
+											"value": "@item().SrcFolderPath",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "D1",
+									"type": "DatasetReference",
+									"parameters": {
+										"BlobFileName": {
+											"value": "@item().BlobFileName",
+											"type": "Expression"
+										},
+										"OutputFolderPath": {
+											"value": "@concat(item().OutputFolderPath, formatDateTime(utcnow(),'yyyyMMdd'))",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		"parameters": {
+			"InputParams": {
+				"type": "Array",
+				"defaultValue": [
+					{
+						"SrcFolderPath": "/Market_Seg/",
+						"FtpFileName": "*",
+						"OutputFolderPath": "Market",
+						"BlobFileName": "Market"
+					},
+					{
+						"SrcFolderPath": "/Orders/",
+						"FtpFileName": "*",
+						"OutputFolderPath": "Orders",
+						"BlobFileName": "Orders"
+					},
+					{
+						"SrcFolderPath": "/Qoutes/",
+						"FtpFileName": "*",
+						"OutputFolderPath": "Qoutes",
+						"BlobFileName": "Qoutes"
+					}
+				]
+			}
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

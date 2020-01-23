@@ -1,0 +1,115 @@
+{
+	"name": "Order",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SourceBlobStorage",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"filename": {
+				"type": "string"
+			},
+			"filepath": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@dataset().filename",
+					"type": "Expression"
+				},
+				"container": {
+					"value": "@dataset().filepath",
+					"type": "Expression"
+				}
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "Job No.",
+				"type": "String"
+			},
+			{
+				"name": "Item",
+				"type": "String"
+			},
+			{
+				"name": "Line item",
+				"type": "String"
+			},
+			{
+				"name": "Material",
+				"type": "String"
+			},
+			{
+				"name": "Doc. Date",
+				"type": "String"
+			},
+			{
+				"name": "Quantity",
+				"type": "String"
+			},
+			{
+				"name": "Sold-to pt",
+				"type": "String"
+			},
+			{
+				"name": "Customer Name",
+				"type": "String"
+			},
+			{
+				"name": "Destination",
+				"type": "String"
+			},
+			{
+				"name": "Purchase order no.",
+				"type": "String"
+			},
+			{
+				"name": "Del Date",
+				"type": "String"
+			},
+			{
+				"name": "FX RATE",
+				"type": "String"
+			},
+			{
+				"name": "Order qty",
+				"type": "String"
+			},
+			{
+				"name": "BUn",
+				"type": "String"
+			},
+			{
+				"name": "     Net price ",
+				"type": "String"
+			},
+			{
+				"name": "per",
+				"type": "String"
+			},
+			{
+				"name": "UoM",
+				"type": "String"
+			},
+			{
+				"name": "      Net Value ",
+				"type": "String"
+			},
+			{
+				"name": "GBP Value",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

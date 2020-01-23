@@ -1,0 +1,44 @@
+{
+	"name": "csvsrc",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "SourceBlobStorage",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"FtpFileName": {
+				"type": "string"
+			},
+			"SrcFolderPath": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": {
+					"value": "@dataset().FtpFileName",
+					"type": "Expression"
+				},
+				"folderPath": {
+					"value": "@dataset().SrcFolderPath",
+					"type": "Expression"
+				},
+				"container": "2019"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "John,Doe, 120 jefferson st., Riverside, NJ-08075",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

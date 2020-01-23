@@ -1,0 +1,91 @@
+{
+	"name": "DS_TempRaw",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"schema": {
+				"type": "string"
+			},
+			"stage_table": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Serial_Number",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Sales_Order",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Sales_Item",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Material",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Quantity",
+				"type": "nvarchar"
+			},
+			{
+				"name": "UoM",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Net_value",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Currency",
+				"type": "varchar"
+			},
+			{
+				"name": "Creation_Date",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Created_By",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Plant",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Document_Type",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Document_Category",
+				"type": "nvarchar"
+			},
+			{
+				"name": "Batch_Id",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().schema",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().stage_table",
+				"type": "Expression"
+			}
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

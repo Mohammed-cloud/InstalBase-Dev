@@ -1,0 +1,163 @@
+{
+	"name": "FileTestDrive",
+	"properties": {
+		"activities": [
+			{
+				"name": "ForEach_ProcessFilesPerBatch_Quote",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Quotes_copy",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Quotes_copy').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"batchCount": 10,
+					"activities": [
+						{
+							"name": "Lookup_GetDynamicMapping",
+							"type": "Lookup",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SqlSource",
+									"sqlReaderStoredProcedureName": "[dbo].[usp_GetSourceToTransactionRawMapping1]",
+									"storedProcedureParameters": {
+										"batchId": {
+											"type": "Int32",
+											"value": {
+												"value": "@item().batch_id",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"dataset": {
+									"referenceName": "AzureSqlTable1",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "CopyDataFlow",
+							"type": "ExecuteDataFlow",
+							"dependsOn": [
+								{
+									"activity": "Lookup_GetDynamicMapping",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataflow": {
+									"referenceName": "CopyDataFlow",
+									"type": "DataFlowReference",
+									"parameters": {
+										"filename": {
+											"value": "'@{activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename}'",
+											"type": "Expression"
+										},
+										"File_trans_id": {
+											"value": "'@{activity('Lookup_GetDynamicMapping').output.firstRow.batchId}'",
+											"type": "Expression"
+										}
+									},
+									"datasetParameters": {
+										"source": {
+											"filename": {
+												"value": "@activity('Lookup_GetDynamicMapping').output.firstRow.csvfilename",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								"compute": {
+									"coreCount": 8,
+									"computeType": "General"
+								}
+							}
+						}
+					]
+				}
+			},
+			{
+				"name": "Lookup_GetUnprocessedBatchIds",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlSource",
+						"sqlReaderStoredProcedureName": "[dbo].[usp_GetUnproccessedBatchIds1]",
+						"storedProcedureParameters": {
+							"flag": {
+								"type": "String",
+								"value": "UnProcessedBatch"
+							}
+						}
+					},
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "Quotes_copy",
+				"type": "Filter",
+				"dependsOn": [
+					{
+						"activity": "Lookup_GetUnprocessedBatchIds",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup_GetUnprocessedBatchIds').output.value",
+						"type": "Expression"
+					},
+					"condition": {
+						"value": "@equals(item().file_name_loc,'Quote_France')",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

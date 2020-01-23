@@ -1,0 +1,60 @@
+{
+	"name": "CopyDataFlow",
+	"properties": {
+		"activities": [
+			{
+				"name": "CopyDataFlow",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "CopyDataFlow",
+						"type": "DataFlowReference",
+						"parameters": {
+							"filename": {
+								"value": "'@{pipeline().parameters.filename}'",
+								"type": "Expression"
+							},
+							"File_trans_id": {
+								"value": "'@{pipeline().parameters.BatchId}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"source": {
+								"filename": {
+									"value": "@pipeline().parameters.filename",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"filename": {
+				"type": "string",
+				"defaultValue": "Quote_France_2019-12-16_000123.csv"
+			},
+			"BatchId": {
+				"type": "int",
+				"defaultValue": 1
+			}
+		},
+		"annotations": []
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}
