@@ -1,0 +1,39 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "wranglingdf"
+		},
+		"AzureSqlDatabase_connectionString": {
+			"value": ""
+		},
+		"DesPOS_connectionString": {
+			"value": ""
+		},
+		"DestinationBlobStorage_connectionString": {
+			"value": ""
+		},
+		"MapDF_connectionString": {
+			"value": ""
+		},
+		"POS_connectionString": {
+			"value": ""
+		},
+		"SRC_connectionString": {
+			"value": ""
+		},
+		"SourceBlobStorage_connectionString": {
+			"value": ""
+		},
+		"linkedService1_connectionString": {
+			"value": ""
+		},
+		"linkedService2_connectionString": {
+			"value": ""
+		},
+		"Test_properties_typeProperties_scope": {
+			"value": "/subscriptions/ed2d25b5-7fa9-4673-bf90-6046518791df/resourceGroups/Installbase/providers/Microsoft.Storage/storageAccounts/refinedlayer"
+		}
+	}
+}
