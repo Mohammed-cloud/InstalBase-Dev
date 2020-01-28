@@ -1,6 +1,7 @@
 {
 	"name": "BlobtoRaws",
 	"properties": {
+		"description": "Pipeline name has changed.",
 		"activities": [
 			{
 				"name": "FiletoTable-Iteration",
